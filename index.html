@@ -143,6 +143,7 @@ canvas{width:100%;height:540px;display:block;}
         <label>참가자</label>
         <input id="peopleInput" value="태민, 찬우, 지용, 윤석, 지우" />
       </div>
+      <div style="margin:-4px 0 8px 88px;font-size:12px;color:var(--muted);">쉼표(,)로 참가자를 구분해 주세요.</div>
 
       <div class="row">
         <label>꽝 인원</label>
@@ -155,7 +156,7 @@ canvas{width:100%;height:540px;display:block;}
         <button class="danger" id="btnReset">초기화</button>
         <button class="warn split-btn" id="btnSpeed" data-stealth-index="0">사다리 속도 증가</button>
         <button class="warn split-btn" id="btnSpeedDown" data-stealth-index="1">사다리 속도 감소</button>
-        <button class="subtle split-btn" id="btnFast" data-stealth-index="2">빠른 결과보기</button>
+        <button class="subtle" id="btnFast">빠른 결과보기</button>
       </div>
     </section>
 
@@ -195,15 +196,18 @@ canvas{width:100%;height:540px;display:block;}
       <div style="font-size:13px;line-height:1.5;color:#394150;margin:0 0 10px;">
         참가자와 꽝 인원을 설정한 뒤 사다리 생성을 누르세요. 전체 실행은 순서대로 결과를 보여줍니다.
       </div>
-      <div style="font-size:12px;color:var(--muted);margin:0 0 6px;">소리 음량</div>
-      <div class="row">
-        <label>배경음</label>
-        <input id="bgmVolume" type="range" min="0" max="100" value="60" />
-      </div>
-      <div class="row">
-        <label>결과음</label>
-        <input id="resultVolume" type="range" min="0" max="100" value="70" />
-      </div>
+    <div style="font-size:12px;color:var(--muted);margin:0 0 6px;">소리 음량</div>
+    <div class="row">
+      <label>배경음</label>
+      <input id="bgmVolume" type="range" min="0" max="100" value="60" />
+    </div>
+    <div class="row">
+      <label>결과음</label>
+      <input id="resultVolume" type="range" min="0" max="100" value="70" />
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin:4px 0 10px;">
+      <button class="danger" id="btnMute" type="button">음소거</button>
+    </div>
       <div style="font-size:12px;color:var(--muted);margin:0 0 6px;">참가자 매핑</div>
       <div class="row">
         <label>참가자</label>
@@ -213,7 +217,12 @@ canvas{width:100%;height:540px;display:block;}
         <label>꽝 인원</label>
         <input id="settingsLoserInput" type="number" min="1" value="1" />
       </div>
-      <div style="height:110px;"></div>
+      <div style="font-size:12px;color:var(--muted);margin:8px 0 6px;">사다리 속도</div>
+      <div class="row">
+        <label>속도</label>
+        <input id="speedRange" type="range" min="200" max="6000" value="3000" />
+      </div>
+      <div style="height:40px;"></div>
       <div style="font-size:12px;color:var(--muted);margin:10px 0 6px;">비밀버튼</div>
 
     <div class="row">
@@ -224,10 +233,6 @@ canvas{width:100%;height:540px;display:block;}
       <label>비밀버튼 2</label>
       <input id="secretInput2" placeholder="예: 재혁" />
     </div>
-      <div class="row">
-        <label>비밀버튼 3</label>
-        <input id="secretInput3" placeholder="예: 현흥" />
-      </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin:8px 0 0;">
         <button class="subtle" id="btnFairPlay" type="button">진짜 조작 없이</button>
       </div>
@@ -260,22 +265,25 @@ const settingsPeopleInput = document.getElementById("settingsPeopleInput");
 const settingsLoserInput = document.getElementById("settingsLoserInput");
 const secretInput1 = document.getElementById("secretInput1");
 const secretInput2 = document.getElementById("secretInput2");
-const secretInput3 = document.getElementById("secretInput3");
 const btnFairPlay = document.getElementById("btnFairPlay");
 const btnSettingsClose = document.getElementById("btnSettingsClose");
 const btnSettingsSave = document.getElementById("btnSettingsSave");
 const bgmVolume = document.getElementById("bgmVolume");
 const resultVolume = document.getElementById("resultVolume");
+const speedRange = document.getElementById("speedRange");
 let canvasW=0;
 let canvasH=0;
 let animToken=0;
 let animDuration=3000;
 let state={};
 let forcedNameNext=null;
-let secretTargets=["찬우","재혁","현흥"];
+let secretTargets=["찬우","재혁"];
 let fairModeNext=false;
 let bgmVol=0.6;
 let resultVol=0.7;
+let muteOn=false;
+let prevBgmVol=bgmVol;
+let prevResultVol=resultVol;
 
 function resize(){
   const r = canvas.getBoundingClientRect();
@@ -360,9 +368,9 @@ function openSettings(){
   if(settingsLoserInput) settingsLoserInput.value=loserCountInput.value;
   if(bgmVolume) bgmVolume.value=Math.round(bgmVol*100);
   if(resultVolume) resultVolume.value=Math.round(resultVol*100);
+  if(speedRange) speedRange.value=animDuration;
   if(secretInput1) secretInput1.value=secretTargets[0] || "";
   if(secretInput2) secretInput2.value=secretTargets[1] || "";
-  if(secretInput3) secretInput3.value=secretTargets[2] || "";
   if(settingsModal) settingsModal.style.display="flex";
 }
 
@@ -375,11 +383,12 @@ function saveSettings(){
   if(settingsLoserInput) loserCountInput.value=settingsLoserInput.value;
   secretTargets=[
     (secretInput1 && secretInput1.value ? secretInput1.value.trim() : ""),
-    (secretInput2 && secretInput2.value ? secretInput2.value.trim() : ""),
-    (secretInput3 && secretInput3.value ? secretInput3.value.trim() : "")
+    (secretInput2 && secretInput2.value ? secretInput2.value.trim() : "")
   ];
   if(bgmVolume) bgmVol=clamp(parseInt(bgmVolume.value,10)/100,0,1);
   if(resultVolume) resultVol=clamp(parseInt(resultVolume.value,10)/100,0,1);
+  muteOn=(bgmVol===0 && resultVol===0);
+  if(speedRange) animDuration=clamp(parseInt(speedRange.value,10),200,6000);
   statusEl.textContent="세팅 저장 완료. 사다리 생성을 다시 눌러주세요.";
   closeSettings();
 }
@@ -583,6 +592,12 @@ async function runAll(){
 }
 
 function fastResult(){
+  if(!state.rungs || !state.N){
+    statusEl.textContent="사다리 생성을 누르세요";
+    stopBgm();
+    alert("사다리 생성을 먼저 눌러주세요.");
+    return;
+  }
   animToken++;
   state.namesByEnd=Array.from({length:state.N},()=>[]);
   state.people.forEach((name,i)=>{
@@ -735,6 +750,24 @@ document.querySelectorAll(".split-btn").forEach((btn)=>{
 if(btnSettings) btnSettings.onclick=openSettings;
 if(btnSettingsClose) btnSettingsClose.onclick=closeSettings;
 if(btnSettingsSave) btnSettingsSave.onclick=saveSettings;
+const btnMute = document.getElementById("btnMute");
+if(btnMute) btnMute.onclick=()=>{
+  if(!muteOn){
+    prevBgmVol=bgmVol;
+    prevResultVol=resultVol;
+    bgmVol=0;
+    resultVol=0;
+    if(bgmVolume) bgmVolume.value=0;
+    if(resultVolume) resultVolume.value=0;
+    muteOn=true;
+  }else{
+    bgmVol=prevBgmVol || 0.6;
+    resultVol=prevResultVol || 0.7;
+    if(bgmVolume) bgmVolume.value=Math.round(bgmVol*100);
+    if(resultVolume) resultVolume.value=Math.round(resultVol*100);
+    muteOn=false;
+  }
+};
 if(btnFairPlay) btnFairPlay.onclick=()=>{
   fairModeNext=true;
   forcedNameNext=null;
