@@ -57,6 +57,14 @@ input{
   background:#fbfcff;
   color:var(--text);
 }
+select{
+  flex:1;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid #dde2ee;
+  background:#fbfcff;
+  color:var(--text);
+}
 .titlebar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
 .icon-btn{
   border:1px solid #e6e9f2;
@@ -124,6 +132,10 @@ button{
 }
 
 canvas{width:100%;height:540px;display:block;}
+.slot-wrap{width:240px;height:200px;overflow:hidden;border-radius:14px;border:1px solid #e5e7eb;background:#fafafa;box-shadow:inset 0 0 12px rgba(0,0,0,.06);}
+.slot-track{display:flex;flex-direction:column;align-items:center;gap:0;will-change:transform;}
+.slot-item{display:flex;align-items:center;justify-content:center;height:200px;}
+.slot-item img{max-width:200px;max-height:180px;border-radius:12px;}
 
 @media(max-width:900px){
   .panel{grid-template-columns:1fr;}
@@ -183,7 +195,20 @@ canvas{width:100%;height:540px;display:block;}
     <h3>🎉 결과 🎉</h3>
     <div id="resultList" style="margin:12px 0;"></div>
     <div id="resultFooter" style="margin-top:10px;font-weight:700;color:#11131a;"></div>
-    <button class="primary" onclick="closeModal()">닫기</button>
+    <div style="margin-top:14px;padding-top:10px;border-top:1px dashed #e5e7eb;">
+      <div style="font-weight:700;margin-bottom:6px;"> 🍦 아이스크림 룰렛 🍦</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <div class="slot-wrap">
+          <div id="slotTrack" class="slot-track"></div>
+        </div>
+        <div id="rouletteName" style="font-size:16px;font-weight:700;"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+        <button class="subtle" id="btnSpin">돌리기</button>
+        <button class="warn" id="btnStopSpin">멈추기</button>
+        <button class="primary" onclick="closeModal()">닫기</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -233,8 +258,16 @@ canvas{width:100%;height:540px;display:block;}
       <input id="secretInput1" placeholder="예: 찬우" />
     </div>
     <div class="row">
+      <label>아이스크림</label>
+      <select id="secretIcecream1"></select>
+    </div>
+    <div class="row">
       <label>비밀버튼 2</label>
       <input id="secretInput2" placeholder="예: 재혁" />
+    </div>
+    <div class="row">
+      <label>아이스크림</label>
+      <select id="secretIcecream2"></select>
     </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin:8px 0 0;">
         <button class="subtle" id="btnFairPlay" type="button">진짜 조작 없이</button>
@@ -268,12 +301,18 @@ const settingsPeopleInput = document.getElementById("settingsPeopleInput");
 const settingsLoserInput = document.getElementById("settingsLoserInput");
 const secretInput1 = document.getElementById("secretInput1");
 const secretInput2 = document.getElementById("secretInput2");
+const secretIcecream1 = document.getElementById("secretIcecream1");
+const secretIcecream2 = document.getElementById("secretIcecream2");
 const btnFairPlay = document.getElementById("btnFairPlay");
 const btnSettingsClose = document.getElementById("btnSettingsClose");
 const btnSettingsSave = document.getElementById("btnSettingsSave");
 const bgmVolume = document.getElementById("bgmVolume");
 const resultVolume = document.getElementById("resultVolume");
 const speedRange = document.getElementById("speedRange");
+const rouletteName = document.getElementById("rouletteName");
+const slotTrack = document.getElementById("slotTrack");
+const btnSpin = document.getElementById("btnSpin");
+const btnStopSpin = document.getElementById("btnStopSpin");
 let canvasW=0;
 let canvasH=0;
 let animToken=0;
@@ -281,12 +320,19 @@ let animDuration=3000;
 let state={};
 let forcedNameNext=null;
 let secretTargets=["찬우","재혁"];
+let secretIcecreamTargets=["",""];
 let fairModeNext=false;
 let bgmVol=0.6;
 let resultVol=0.7;
 let muteOn=false;
 let prevBgmVol=bgmVol;
 let prevResultVol=resultVol;
+let lastLosers=[];
+let rouletteSpinId=0;
+let rouletteSpinning=false;
+let rouletteStopping=false;
+let rouletteCurrentIndex=0;
+let slotOffset=0;
 
 function resize(){
   const r = canvas.getBoundingClientRect();
@@ -359,7 +405,14 @@ function generate(opts={}){
 
     state={people,results,rungs,H,N,ends,resolved:Array(N).fill(null),showNames:false,namesByEnd:[]};
     drawBase();
-    statusEl.textContent=useFair ? "사다리 생성 완료 ()" : "사다리 생성 완료";
+    statusEl.textContent=useFair ? "사다리 생성 완료 (진짜 조작 없이)" : "사다리 생성 완료";
+    rouletteCurrentIndex=0;
+    rouletteSpinning=false;
+    rouletteStopping=false;
+    rouletteSpinId++;
+    if(rouletteName) rouletteName.textContent="돌리기 버튼을 눌러주세요";
+    buildSlotTrack();
+    if(slotTrack) slotTrack.style.visibility="hidden";
   }catch(e){
     console.error(e);
     statusEl.textContent="오류가 발생했어요. 콘솔을 확인해 주세요.";
@@ -374,6 +427,10 @@ function openSettings(){
   if(speedRange) speedRange.value=animDuration;
   if(secretInput1) secretInput1.value=secretTargets[0] || "";
   if(secretInput2) secretInput2.value=secretTargets[1] || "";
+  buildIcecreamSelect(secretIcecream1);
+  buildIcecreamSelect(secretIcecream2);
+  if(secretIcecream1) secretIcecream1.value=secretIcecreamTargets[0] || "";
+  if(secretIcecream2) secretIcecream2.value=secretIcecreamTargets[1] || "";
   if(settingsModal) settingsModal.style.display="flex";
 }
 
@@ -387,6 +444,10 @@ function saveSettings(){
   secretTargets=[
     (secretInput1 && secretInput1.value ? secretInput1.value.trim() : ""),
     (secretInput2 && secretInput2.value ? secretInput2.value.trim() : "")
+  ];
+  secretIcecreamTargets=[
+    (secretIcecream1 && secretIcecream1.value ? secretIcecream1.value : ""),
+    (secretIcecream2 && secretIcecream2.value ? secretIcecream2.value : "")
   ];
   if(bgmVolume) bgmVol=clamp(parseInt(bgmVolume.value,10)/100,0,1);
   if(resultVolume) resultVol=clamp(parseInt(resultVolume.value,10)/100,0,1);
@@ -519,7 +580,7 @@ function buildPath(start){
       pts.push({x,y:yPos});
     }
   }
-  pts.push({x,y:canvasH-bot});
+  pts.push({x,y:canvasH-bot});  
   return pts;
 }
 
@@ -626,6 +687,16 @@ function showModal(){
   const footer=document.getElementById("resultFooter");
   const sentence=`씐나게 아이스크림 살 사람은 ${losers.join(", ")}!!!`;
   footer.textContent=sentence;
+  lastLosers=losers.slice();
+  rouletteSpinning=false;
+  rouletteStopping=false;
+  rouletteSpinId++;
+  rouletteCurrentIndex=Math.floor(Math.random()*icecreamItems.length);
+  buildSlotTrack();
+  slotOffset=0;
+  if(slotTrack) slotTrack.style.transform=`translateY(${slotOffset}px)`;
+  if(slotTrack) slotTrack.style.visibility="hidden";
+  if(rouletteName) rouletteName.textContent="돌리기 버튼을 눌러주세요";
   startEmojiBurst();
   speakResult(sentence);
   stopBgm();
@@ -717,6 +788,167 @@ function stopResultBgm(){
   audio.currentTime=0;
 }
 
+const icecreamItems=[
+  {name:"더블비안코",src:"icecream/더블비안코.jpeg"},
+  {name:"돼지바",src:"icecream/돼지바.jpeg"},
+  {name:"부라보",src:"icecream/부라보.jpeg"},
+  {name:"오레오",src:"icecream/오레오.jpeg"},
+  {name:"인절미콘",src:"icecream/인절미콘.jpeg"},
+  {name:"주토피아",src:"icecream/주토피아.png"},
+  {name:"찰떡아이스",src:"icecream/찰떡아이스.jpeg"},
+  {name:"파르페",src:"icecream/파르페.png"},
+  {name:"하겐다즈",src:"icecream/하겐다즈.jpeg"}
+];
+const rouletteColors=["#ff3b30","#ff9500","#34c759","#007aff","#5856d6","#ff2d55"];
+
+function buildIcecreamSelect(selectEl){
+  if(!selectEl) return;
+  if(selectEl.options && selectEl.options.length>0) return;
+  const optEmpty=document.createElement("option");
+  optEmpty.value="";
+  optEmpty.textContent="(랜덤)";
+  selectEl.appendChild(optEmpty);
+  icecreamItems.forEach((item)=>{
+    const opt=document.createElement("option");
+    opt.value=item.name;
+    opt.textContent=item.name;
+    selectEl.appendChild(opt);
+  });
+}
+
+function getForcedIcecreamIndex(){
+  for(let i=0;i<secretTargets.length;i++){
+    const name=secretTargets[i];
+    const ice=secretIcecreamTargets[i];
+    if(!name || !ice) continue;
+    if(lastLosers.includes(name)){
+      const idx=icecreamItems.findIndex(it=>it.name===ice);
+      if(idx>=0) return idx;
+    }
+  }
+  return -1;
+}
+
+function renderRouletteItem(idx){
+  const item=icecreamItems[idx % icecreamItems.length];
+  if(rouletteName) rouletteName.textContent=item.name;
+  if(rouletteName){
+    rouletteName.style.color=rouletteColors[idx % rouletteColors.length];
+  }
+}
+
+function buildSlotTrack(){
+  if(!slotTrack) return;
+  slotTrack.innerHTML="";
+  const repeat=6;
+  for(let r=0;r<repeat;r++){
+    icecreamItems.forEach((item)=>{
+      const box=document.createElement("div");
+      box.className="slot-item";
+      const img=document.createElement("img");
+      img.src=item.src;
+      img.alt=item.name;
+      box.appendChild(img);
+      slotTrack.appendChild(box);
+    });
+  }
+  slotOffset=0;
+  slotTrack.style.transform="translateY(0px)";
+}
+
+function startSpin(){
+  if(rouletteSpinning || rouletteStopping) return;
+  rouletteSpinning=true;
+  if(slotTrack) slotTrack.style.visibility="visible";
+  const myId=++rouletteSpinId;
+  let last=performance.now();
+  let speed=18; // items per second
+  let acc=0;
+  const itemH=200;
+  const trackH=itemH*icecreamItems.length*6;
+  function frame(t){
+    if(myId!==rouletteSpinId) return;
+    const dt=(t-last)/1000;
+    last=t;
+    acc+=dt*speed;
+    const step=Math.floor(acc);
+    if(step>0){
+      acc-=step;
+      rouletteCurrentIndex=(rouletteCurrentIndex+step)%icecreamItems.length;
+      slotOffset-=step*itemH;
+      if(slotOffset<=-trackH+itemH*icecreamItems.length){
+        slotOffset+=itemH*icecreamItems.length;
+      }
+      if(slotTrack) slotTrack.style.transform=`translateY(${slotOffset}px)`;
+      renderRouletteItem(rouletteCurrentIndex);
+    }
+    if(rouletteSpinning) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+function stopSpin(){
+  if(!rouletteSpinning || rouletteStopping) return;
+  rouletteStopping=true;
+  rouletteSpinning=false;
+  const myId=++rouletteSpinId;
+  const forcedIdx=getForcedIcecreamIndex();
+  let last=performance.now();
+  let speed=16;
+  let acc=0;
+  const itemH=200;
+  const trackH=itemH*icecreamItems.length*6;
+  function frame(t){
+    if(myId!==rouletteSpinId) return;
+    const dt=(t-last)/1000;
+    last=t;
+    speed=Math.max(0, speed-6*dt);
+    acc+=dt*speed;
+    const step=Math.floor(acc);
+    if(step>0){
+      acc-=step;
+      rouletteCurrentIndex=(rouletteCurrentIndex+step)%icecreamItems.length;
+      slotOffset-=step*itemH;
+      if(slotOffset<=-trackH+itemH*icecreamItems.length){
+        slotOffset+=itemH*icecreamItems.length;
+      }
+      if(slotTrack) slotTrack.style.transform=`translateY(${slotOffset}px)`;
+      renderRouletteItem(rouletteCurrentIndex);
+    }
+    if(speed>0.1){
+      requestAnimationFrame(frame);
+    }else{
+      rouletteStopping=false;
+      if(forcedIdx>=0){
+        rouletteCurrentIndex=forcedIdx;
+      }
+      settleToCurrent();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function settleToCurrent(){
+  const itemH=200;
+  const target=-rouletteCurrentIndex*itemH;
+  const start=slotOffset;
+  const duration=260;
+  const t0=performance.now();
+  function frame(t){
+    const p=Math.min(1,(t-t0)/duration);
+    const eased=1-Math.pow(1-p,3);
+    slotOffset=start+(target-start)*eased;
+    if(slotTrack) slotTrack.style.transform=`translateY(${slotOffset}px)`;
+    if(p<1) requestAnimationFrame(frame);
+    else{
+      slotOffset=target;
+      if(slotTrack) slotTrack.style.transform=`translateY(${slotOffset}px)`;
+      renderRouletteItem(rouletteCurrentIndex);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
 if(btnGenerate) btnGenerate.onclick=generate;
 if(btnRunAll) btnRunAll.onclick=runAll;
 if(btnFast) btnFast.onclick=fastResult;
@@ -774,9 +1006,14 @@ if(btnMute) btnMute.onclick=()=>{
 if(btnFairPlay) btnFairPlay.onclick=()=>{
   fairModeNext=true;
   forcedNameNext=null;
-  statusEl.textContent="사다리 생성을 다시 눌러주세요.";
+  statusEl.textContent="다음 한 판만 진짜 조작 없이 진행합니다. 사다리 생성을 다시 눌러주세요.";
   closeSettings();
 };
+if(btnSpin) btnSpin.onclick=()=>{
+  renderRouletteItem(rouletteCurrentIndex);
+  startSpin();
+};
+if(btnStopSpin) btnStopSpin.onclick=stopSpin;
 if(settingsModal) settingsModal.addEventListener("click",(e)=>{
   if(e.target===settingsModal) closeSettings();
 });

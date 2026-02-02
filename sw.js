@@ -5,7 +5,16 @@ const ASSETS = [
   "./manifest.json",
   "./icons/icon-kcw.jpg",
   "./sounds/사다리 타기.mp3",
-  "./sounds/장성에 대한 경례 소장.mp3"
+  "./sounds/장성에 대한 경례 소장.mp3",
+  "./icecream/더블비안코.jpeg",
+  "./icecream/돼지바.jpeg",
+  "./icecream/부라보.jpeg",
+  "./icecream/오레오.jpeg",
+  "./icecream/인절미콘.jpeg",
+  "./icecream/주토피아.png",
+  "./icecream/찰떡아이스.jpeg",
+  "./icecream/파르페.png",
+  "./icecream/하겐다즈.jpeg"
 ];
 
 self.addEventListener("install", (event) => {
