@@ -4,8 +4,8 @@ const ASSETS = [
   "./index.html",
   "./manifest.json",
   "./icons/icon-kcw.jpg",
-  "./사다리 타기.mp3",
-  "./장성에 대한 경례 소장.mp3"
+  "./sounds/사다리 타기.mp3",
+  "./sounds/장성에 대한 경례 소장.mp3"
 ];
 
 self.addEventListener("install", (event) => {
