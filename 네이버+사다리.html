@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>신나게 아이스크림 사기</title>
+
+<style>
+:root{
+  --bg:#f2f4f8;
+  --card:#ffffff;
+  --line:#20242d;
+  --accent:#2f6bff;
+  --accent2:#11b5a4;
+  --danger:#ff4d4f;
+  --text:#11131a;
+  --muted:#6b7280;
+  --shadow:0 12px 40px rgba(10,20,40,.12);
+  --radius:18px;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  font-family:"Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  background:radial-gradient(1200px 600px at 20% -10%, #e7f0ff 0%, transparent 60%),
+             radial-gradient(900px 500px at 100% 10%, #e7fff6 0%, transparent 55%),
+             var(--bg);
+  color:var(--text);
+}
+.wrap{
+  max-width:1000px;
+  margin:24px auto;
+  padding:0 16px 40px;
+}
+.panel{
+  display:grid;
+  grid-template-columns:380px 1fr;
+  gap:16px;
+}
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:16px;
+  border:1px solid #e6e9f2;
+}
+.row{display:flex;gap:8px;margin-bottom:10px;}
+label{width:80px;font-size:13px;color:var(--muted);}
+input{
+  flex:1;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid #dde2ee;
+  background:#fbfcff;
+  color:var(--text);
+}
+.btns{display:grid;grid-template-columns:1.2fr 1.2fr 1.4fr;gap:10px;margin-top:12px;}
+button{
+  border:0;
+  border-radius:10px;
+  padding:12px 18px;
+  font-weight:600;
+  cursor:pointer;
+}
+.primary{
+  background:linear-gradient(135deg,var(--accent),#4b86ff);
+  color:#fff;
+  box-shadow:0 8px 20px rgba(47,107,255,.25);
+}
+.danger{background:#ffecec;color:var(--danger);}
+.subtle{
+  background:linear-gradient(135deg,var(--accent2),#1ac8b6);
+  color:#fff;
+  box-shadow:0 8px 20px rgba(17,181,164,.22);
+}
+.warn{
+  background:linear-gradient(135deg,#ff4d4f,#ff8a00,#ffd400);
+  color:#11131a;
+  box-shadow:0 8px 20px rgba(255,138,0,.25);
+}
+.stealth-grid{
+  width:100%;
+  height:40px;
+  opacity:0;
+  border:0;
+  background:#000;
+  cursor:pointer;
+}
+.btnSpacer{
+  height:40px;
+  border-radius:10px;
+  background:transparent;
+}
+
+#emojiBurst{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  overflow:hidden;
+}
+.burst{
+  position:absolute;
+  font-size:22px;
+  animation:burst-fall 2.2s linear forwards;
+  will-change:transform,opacity;
+}
+@keyframes burst-fall{
+  0%{transform:translate3d(0,-10vh,0) rotate(0deg);opacity:0;}
+  10%{opacity:1;}
+  100%{transform:translate3d(0,110vh,0) rotate(220deg);opacity:0;}
+}
+
+canvas{width:100%;height:540px;display:block;}
+
+@media(max-width:900px){
+  .panel{grid-template-columns:1fr;}
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="panel">
+
+    <!-- 설정 -->
+    <section class="card">
+      <h3>신나게 아이스크림 사기</h3>
+
+      <div class="row">
+        <label>참가자</label>
+        <input id="peopleInput" value="태민, 찬우, 지용, 윤석, 지우" />
+      </div>
+
+      <div class="row">
+        <label>꽝 인원</label>
+        <input id="loserCountInput" type="number" min="1" value="1" />
+      </div>
+
+      <div class="btns">
+        <button class="primary" id="btnGenerate">사다리 생성</button>
+        <button class="subtle" id="btnRunAll">전체 실행</button>
+        <button class="danger" id="btnReset">초기화</button>
+        <button class="warn" id="btnSpeed">사다리 속도 증가</button>
+        <button class="warn" id="btnSpeedDown">사다리 속도 감소</button>
+        <button class="subtle" id="btnFast">빠른 결과보기</button>
+        <button class="stealth-grid" id="btnStealth" aria-label="hidden"></button>
+        <button class="stealth-grid" id="btnStealthJH" aria-label="hidden"></button>
+        <button class="stealth-grid" id="btnStealthHH" aria-label="hidden"></button>
+      </div>
+    </section>
+
+    <!-- 사다리 -->
+    <section class="card">
+      <canvas id="canvas"></canvas>
+      <div id="status" style="margin-top:8px;font-size:13px;color:#666;">사다리 생성을 누르세요</div>
+    </section>
+
+  </div>
+</div>
+
+<!-- 결과 모달 -->
+<div id="modal" style="
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.45);
+  display:none;align-items:center;justify-content:center;
+">
+  <div id="emojiBurst" aria-hidden="true"></div>
+  <div style="background:#fff;padding:24px;border-radius:16px;min-width:260px;">
+    <h3>🎉 결과 🎉</h3>
+    <div id="resultList" style="margin:12px 0;"></div>
+    <div id="resultFooter" style="margin-top:10px;font-weight:700;color:#11131a;"></div>
+    <button class="primary" onclick="closeModal()">닫기</button>
+  </div>
+</div>
+
+<audio id="bgm" src="사다리 타기.mp3" preload="auto"></audio>
+<audio id="resultBgm" src="장성에 대한 경례 소장.mp3" preload="auto"></audio>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const statusEl = document.getElementById("status");
+const peopleInput = document.getElementById("peopleInput");
+const loserCountInput = document.getElementById("loserCountInput");
+const btnGenerate = document.getElementById("btnGenerate");
+const btnRunAll = document.getElementById("btnRunAll");
+const btnReset = document.getElementById("btnReset");
+const btnFast = document.getElementById("btnFast");
+const btnSpeed = document.getElementById("btnSpeed");
+const btnSpeedDown = document.getElementById("btnSpeedDown");
+const btnStealth = document.getElementById("btnStealth");
+const btnStealthJH = document.getElementById("btnStealthJH");
+const btnStealthHH = document.getElementById("btnStealthHH");
+let canvasW=0;
+let canvasH=0;
+let animToken=0;
+let animDuration=3000;
+let state={};
+let forcedNameNext=null;
+
+function resize(){
+  const r = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const fallbackW = canvas.parentElement ? canvas.parentElement.clientWidth : 900;
+  const fallbackH = canvas.parentElement ? canvas.parentElement.clientHeight : 540;
+  const w = r.width > 10 ? r.width : fallbackW;
+  const h = r.height > 10 ? r.height : fallbackH;
+  canvas.width = Math.floor(w * dpr);
+  canvas.height = Math.floor(h * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvasW = w;
+  canvasH = h;
+  if(!state.rungs) drawPlaceholder();
+}
+window.onresize = resize;
+resize();
+requestAnimationFrame(resize);
+
+function parseCSV(v){return v.split(",").map(s=>s.trim()).filter(Boolean);}
+function rng(a,b){return a+Math.random()*(b-a);}
+
+function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function generate(opts={}){
+  try{
+    animToken++;
+    stopBgm();
+    resize();
+    const people=parseCSV(peopleInput.value);
+    const N=people.length;
+    let loserCount=parseInt(loserCountInput.value,10);
+    if(Number.isNaN(loserCount)) loserCount=1;
+    loserCount=clamp(loserCount,0,N);
+    const forcedName=opts.forcedName ?? forcedNameNext;
+    forcedNameNext=null;
+
+    if(N<2){
+      state={};
+      ctx.clearRect(0,0,canvasW,canvasH);
+      statusEl.textContent="참가자를 2명 이상 입력하세요";
+      drawPlaceholder();
+      return;
+    }
+
+    const H=Math.floor(rng(22,36));
+    const density=rng(0.2,0.3);
+
+    const rungs=Array.from({length:H},()=>Array(N-1).fill(false));
+    const yStart=Math.floor(H*0.1);
+    const yEnd=Math.ceil(H*0.9);
+    for(let y=yStart;y<yEnd;y++){
+      for(let x=0;x<N-1;x++){
+        if(x>0 && rungs[y][x-1]) continue;
+        if(Math.random()<density) rungs[y][x]=true;
+      }
+    }
+
+    const ends=Array.from({length:N},(_,i)=>traceFrom(i,rungs,H,N));
+    const results=assignResults(people,ends,loserCount,forcedName);
+
+    state={people,results,rungs,H,N,ends,resolved:Array(N).fill(null),showNames:false,namesByEnd:[]};
+    drawBase();
+    statusEl.textContent="사다리 생성 완료";
+  }catch(e){
+    console.error(e);
+    statusEl.textContent="오류가 발생했어요. 콘솔을 확인해 주세요.";
+  }
+}
+
+function traceFrom(start,rungs,H,N){
+  let c=start;
+  for(let y=0;y<H;y++){
+    if(c<N-1 && rungs[y][c]) c++;
+    else if(c>0 && rungs[y][c-1]) c--;
+  }
+  return c;
+}
+
+function assignResults(people,ends,loserCount,forcedName){
+  const N=people.length;
+  const results=Array(N).fill("생존");
+  const idxForced=forcedName ? people.indexOf(forcedName) : -1;
+
+  let losers=[];
+  const indices=Array.from({length:N},(_,i)=>i);
+  if(idxForced>=0 && loserCount>0){
+    if(loserCount===1){
+      losers=[idxForced];
+    }else{
+      const pool=indices.filter(i=>i!==idxForced);
+      shuffle(pool);
+      losers=pool.slice(0,Math.max(0,loserCount-1));
+      losers.push(idxForced);
+    }
+  }else{
+    shuffle(indices);
+    losers=indices.slice(0,loserCount);
+  }
+
+  losers.forEach(i=>{results[ends[i]]="꽝";});
+  return results;
+}
+
+function drawBase(){
+  ctx.clearRect(0,0,canvasW,canvasH);
+  if(!state.rungs) return;
+
+  const lineColor="#20242d";
+  const side=40, top=48, bot=56;
+  const colGap=(canvasW-2*side)/(state.N-1);
+  const rowGap=(canvasH-top-bot)/(state.H-1);
+  ctx.strokeStyle=lineColor;
+  ctx.lineWidth=1;
+  ctx.fillStyle="#11131a";
+  ctx.font="700 16px \"Pretendard\",\"Noto Sans KR\",system-ui,sans-serif";
+
+  const showNames=state.showNames===true;
+  const resultY=showNames ? canvasH-30 : canvasH-16;
+  const namesY=canvasH-12;
+
+  state.people.forEach((p,i)=>{
+    ctx.textAlign="center";
+    ctx.fillText(p, side+i*colGap, 20);
+    const isLoser=state.results[i]==="꽝";
+    ctx.fillStyle=isLoser ? "#ff4d4f" : "#12a58f";
+    ctx.font="800 16px \"Pretendard\",\"Noto Sans KR\",system-ui,sans-serif";
+    ctx.fillText(state.results[i], side+i*colGap, resultY);
+    ctx.fillStyle="#11131a";
+    ctx.font="700 16px \"Pretendard\",\"Noto Sans KR\",system-ui,sans-serif";
+  });
+  if(showNames && Array.isArray(state.namesByEnd)){
+    ctx.font="600 12px \"Pretendard\",\"Noto Sans KR\",system-ui,sans-serif";
+    ctx.fillStyle="#6b7280";
+    state.namesByEnd.forEach((names,i)=>{
+      if(!names || names.length===0) return;
+      const text=names.join(" ");
+      ctx.fillText(text, side+i*colGap, namesY);
+    });
+    ctx.fillStyle="#11131a";
+    ctx.font="700 16px \"Pretendard\",\"Noto Sans KR\",system-ui,sans-serif";
+  }
+
+  for(let i=0;i<state.N;i++){
+    ctx.beginPath();
+    ctx.moveTo(side+i*colGap,top);
+    ctx.lineTo(side+i*colGap,canvasH-bot);
+    ctx.stroke();
+  }
+
+  for(let y=0;y<state.H;y++){
+    for(let x=0;x<state.N-1;x++){
+      if(state.rungs[y][x]){
+        ctx.beginPath();
+        ctx.moveTo(side+x*colGap,top+y*rowGap);
+        ctx.lineTo(side+(x+1)*colGap,top+y*rowGap);
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function drawPlaceholder(){
+  ctx.clearRect(0,0,canvasW,canvasH);
+  ctx.fillStyle="#1f2533";
+  ctx.font="800 24px \"Pretendard\",\"Noto Sans KR\",system-ui,sans-serif";
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.fillText("사다리 생성을 누르세요", canvasW/2, canvasH/2);
+  ctx.textBaseline="alphabetic";
+}
+
+function buildPath(start){
+  const side=40, top=48, bot=56;
+  const colGap=(canvasW-2*side)/(state.N-1);
+  const rowGap=(canvasH-top-bot)/(state.H-1);
+  let c=start;
+  const pts=[];
+  let x=side+c*colGap;
+  pts.push({x,y:top});
+  for(let y=0;y<state.H;y++){
+    const yPos=top+y*rowGap;
+    if(y>0) pts.push({x,y:yPos});
+    if(c<state.N-1 && state.rungs[y][c]){
+      c++;
+      x=side+c*colGap;
+      pts.push({x,y:yPos});
+    }else if(c>0 && state.rungs[y][c-1]){
+      c--;
+      x=side+c*colGap;
+      pts.push({x,y:yPos});
+    }
+  }
+  pts.push({x,y:canvasH-bot});
+  return pts;
+}
+
+function drawPartialPath(pts, maxLen, color){
+  ctx.strokeStyle=color;
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x,pts[0].y);
+  let remaining=maxLen;
+  for(let i=1;i<pts.length;i++){
+    const a=pts[i-1], b=pts[i];
+    const seg=Math.hypot(b.x-a.x,b.y-a.y);
+    if(remaining>=seg){
+      ctx.lineTo(b.x,b.y);
+      remaining-=seg;
+    }else{
+      const t=remaining/seg;
+      const x=a.x+(b.x-a.x)*t;
+      const y=a.y+(b.y-a.y)*t;
+      ctx.lineTo(x,y);
+      break;
+    }
+  }
+  ctx.stroke();
+  ctx.lineWidth=1;
+  ctx.strokeStyle="#2b2f38";
+}
+
+async function animatePath(start, color){
+  const myToken=animToken;
+  const pts=buildPath(start);
+  let total=0;
+  for(let i=1;i<pts.length;i++){
+    total+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
+  }
+  const duration=animDuration;
+  const t0=performance.now();
+  return new Promise(resolve=>{
+    function frame(t){
+      if(myToken!==animToken){resolve(false);return;}
+      const p=Math.min(1,(t-t0)/duration);
+      drawBase();
+      drawPartialPath(pts,total*p,color);
+      if(p<1) requestAnimationFrame(frame);
+      else resolve(true);
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+async function runAll(){
+  const myToken=++animToken;
+  if(!state.rungs || !state.N){
+    statusEl.textContent="사다리 생성을 누르세요";
+    stopBgm();
+    alert("사다리 생성을 먼저 눌러주세요.");
+    return;
+  }
+  statusEl.textContent="실행 중...";
+  startBgm();
+  state.namesByEnd=Array.from({length:state.N},()=>[]);
+  state.showNames=false;
+  for(let i=0;i<state.N;i++){
+    const ok=await animatePath(i,"#1a73e8");
+    if(!ok || myToken!==animToken) return;
+    state.resolved[i]=state.ends[i];
+    const end=state.ends[i];
+    state.namesByEnd[end].push(state.people[i]);
+    state.showNames=true;
+    drawBase();
+  }
+  showModal();
+}
+
+function fastResult(){
+  animToken++;
+  state.namesByEnd=Array.from({length:state.N},()=>[]);
+  state.people.forEach((name,i)=>{
+    const end=state.ends[i];
+    state.resolved[i]=end;
+    state.namesByEnd[end].push(name);
+  });
+  state.showNames=true;
+  drawBase();
+  showModal();
+}
+
+function showModal(){
+  const list=document.getElementById("resultList");
+  list.innerHTML="";
+  const losers=[];
+  state.people.forEach((p,i)=>{
+    const d=document.createElement("div");
+    d.textContent=`${p} → ${state.results[state.resolved[i]]}`;
+    list.appendChild(d);
+    if(state.results[state.resolved[i]]==="꽝") losers.push(p);
+  });
+  const footer=document.getElementById("resultFooter");
+  const sentence=`씐나게 아이스크림 살 사람은 ${losers.join(", ")}!!!`;
+  footer.textContent=sentence;
+  startEmojiBurst();
+  speakResult(sentence);
+  stopBgm();
+  playResultBgm();
+  document.getElementById("modal").style.display="flex";
+}
+
+function closeModal(){
+  document.getElementById("modal").style.display="none";
+  stopEmojiBurst();
+  stopSpeak();
+  stopResultBgm();
+}
+
+let burstTimer=null;
+function startEmojiBurst(){
+  const box=document.getElementById("emojiBurst");
+  if(!box) return;
+  box.innerHTML="";
+  const emojis=["🍦","🎉","🎆","✨","🎇","🍧"];
+  const spawn=()=>{
+    for(let i=0;i<12;i++){
+      const el=document.createElement("div");
+      el.className="burst";
+      el.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+      el.style.left=Math.random()*100+"%";
+      el.style.animationDuration=(1.6+Math.random()*1.6)+"s";
+      el.style.fontSize=(18+Math.random()*18)+"px";
+      el.style.opacity="0";
+      box.appendChild(el);
+      el.addEventListener("animationend",()=>el.remove());
+    }
+  };
+  spawn();
+  burstTimer=setInterval(spawn,700);
+}
+
+function stopEmojiBurst(){
+  if(burstTimer) clearInterval(burstTimer);
+  burstTimer=null;
+  const box=document.getElementById("emojiBurst");
+  if(box) box.innerHTML="";
+}
+
+function speakResult(text){
+  if(!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const uttr=new SpeechSynthesisUtterance(text);
+  uttr.lang="ko-KR";
+  uttr.rate=1.0;
+  uttr.pitch=1.0;
+  window.speechSynthesis.speak(uttr);
+}
+
+function stopSpeak(){
+  if(!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+}
+
+function startBgm(){
+  const audio=document.getElementById("bgm");
+  if(!audio) return;
+  audio.currentTime=0;
+  audio.volume=0.6;
+  const p=audio.play();
+  if(p && typeof p.catch==="function") p.catch(()=>{});
+}
+
+function stopBgm(){
+  const audio=document.getElementById("bgm");
+  if(!audio) return;
+  audio.pause();
+  audio.currentTime=0;
+}
+
+function playResultBgm(){
+  const audio=document.getElementById("resultBgm");
+  if(!audio) return;
+  audio.currentTime=0;
+  audio.volume=0.7;
+  const p=audio.play();
+  if(p && typeof p.catch==="function") p.catch(()=>{});
+}
+
+function stopResultBgm(){
+  const audio=document.getElementById("resultBgm");
+  if(!audio) return;
+  audio.pause();
+  audio.currentTime=0;
+}
+
+if(btnGenerate) btnGenerate.onclick=generate;
+if(btnStealth) btnStealth.onclick=()=>{forcedNameNext="찬우";};
+if(btnStealthJH) btnStealthJH.onclick=()=>{forcedNameNext="재혁";};
+if(btnStealthHH) btnStealthHH.onclick=()=>{forcedNameNext="현흥";};
+if(btnRunAll) btnRunAll.onclick=runAll;
+if(btnFast) btnFast.onclick=fastResult;
+if(btnSpeed) btnSpeed.onclick=()=>{
+  animDuration=Math.max(200,Math.floor(animDuration*0.85));
+  statusEl.textContent=`사다리 속도 증가 (${animDuration}ms)`;
+};
+if(btnSpeedDown) btnSpeedDown.onclick=()=>{
+  animDuration=Math.min(6000,Math.floor(animDuration*1.2));
+  statusEl.textContent=`사다리 속도 감소 (${animDuration}ms)`;
+};
+if(btnReset) btnReset.onclick=()=>{
+  animToken++;
+  stopBgm();
+  stopResultBgm();
+  state={};
+  ctx.clearRect(0,0,canvasW,canvasH);
+  statusEl.textContent="사다리 생성을 누르세요";
+  drawPlaceholder();
+};
+
+drawPlaceholder();
+</script>
+</body>
+</html>
