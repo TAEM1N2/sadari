@@ -3,8 +3,7 @@ const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
+  "./icons/icon-kcw.jpg",
   "./사다리 타기.mp3",
   "./장성에 대한 경례 소장.mp3"
 ];
