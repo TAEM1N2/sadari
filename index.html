@@ -54,6 +54,16 @@ input{
   background:#fbfcff;
   color:var(--text);
 }
+.titlebar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.icon-btn{
+  border:1px solid #e6e9f2;
+  background:#f4f7ff;
+  color:#2b2f38;
+  padding:6px 10px;
+  border-radius:10px;
+  font-weight:700;
+}
+.icon-btn:hover{background:#eaf0ff;}
 .btns{display:grid;grid-template-columns:1.2fr 1.2fr 1.4fr;gap:10px;margin-top:12px;}
 button{
   border:0;
@@ -124,7 +134,10 @@ canvas{width:100%;height:540px;display:block;}
 
     <!-- 설정 -->
     <section class="card">
-      <h3>신나게 아이스크림 사기</h3>
+      <div class="titlebar">
+        <h3 style="margin:0;">신나게 아이스크림 사기</h3>
+        <button class="icon-btn" id="btnSettings" type="button" aria-label="settings">⚙️ 세팅</button>
+      </div>
 
       <div class="row">
         <label>참가자</label>
@@ -140,12 +153,9 @@ canvas{width:100%;height:540px;display:block;}
         <button class="primary" id="btnGenerate">사다리 생성</button>
         <button class="subtle" id="btnRunAll">전체 실행</button>
         <button class="danger" id="btnReset">초기화</button>
-        <button class="warn" id="btnSpeed">사다리 속도 증가</button>
-        <button class="warn" id="btnSpeedDown">사다리 속도 감소</button>
-        <button class="subtle" id="btnFast">빠른 결과보기</button>
-        <button class="stealth-grid" id="btnStealth" aria-label="hidden"></button>
-        <button class="stealth-grid" id="btnStealthJH" aria-label="hidden"></button>
-        <button class="stealth-grid" id="btnStealthHH" aria-label="hidden"></button>
+        <button class="warn split-btn" id="btnSpeed" data-stealth-index="0">사다리 속도 증가</button>
+        <button class="warn split-btn" id="btnSpeedDown" data-stealth-index="1">사다리 속도 감소</button>
+        <button class="subtle split-btn" id="btnFast" data-stealth-index="2">빠른 결과보기</button>
       </div>
     </section>
 
@@ -173,6 +183,62 @@ canvas{width:100%;height:540px;display:block;}
   </div>
 </div>
 
+<!-- 설정 모달 -->
+<div id="settingsModal" style="
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.45);
+  display:none;align-items:center;justify-content:center;
+">
+  <div style="background:#fff;padding:14px;border-radius:14px;min-width:260px;max-width:420px;width:88%;">
+    <h3 style="margin:0 0 12px;">세팅</h3>
+    <div style="max-height:240px;overflow:auto;padding-right:4px;">
+      <div style="font-size:13px;line-height:1.5;color:#394150;margin:0 0 10px;">
+        참가자와 꽝 인원을 설정한 뒤 사다리 생성을 누르세요. 전체 실행은 순서대로 결과를 보여줍니다.
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin:0 0 6px;">소리 음량</div>
+      <div class="row">
+        <label>배경음</label>
+        <input id="bgmVolume" type="range" min="0" max="100" value="60" />
+      </div>
+      <div class="row">
+        <label>결과음</label>
+        <input id="resultVolume" type="range" min="0" max="100" value="70" />
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin:0 0 6px;">참가자 매핑</div>
+      <div class="row">
+        <label>참가자</label>
+        <input id="settingsPeopleInput" />
+      </div>
+      <div class="row">
+        <label>꽝 인원</label>
+        <input id="settingsLoserInput" type="number" min="1" value="1" />
+      </div>
+      <div style="height:110px;"></div>
+      <div style="font-size:12px;color:var(--muted);margin:10px 0 6px;">비밀버튼</div>
+
+    <div class="row">
+      <label>비밀버튼 1</label>
+      <input id="secretInput1" placeholder="예: 찬우" />
+    </div>
+    <div class="row">
+      <label>비밀버튼 2</label>
+      <input id="secretInput2" placeholder="예: 재혁" />
+    </div>
+      <div class="row">
+        <label>비밀버튼 3</label>
+        <input id="secretInput3" placeholder="예: 현흥" />
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin:8px 0 0;">
+        <button class="subtle" id="btnFairPlay" type="button">진짜 조작 없이</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+      <button class="danger" id="btnSettingsClose" type="button">닫기</button>
+      <button class="primary" id="btnSettingsSave" type="button">저장</button>
+    </div>
+  </div>
+</div>
+
 <audio id="bgm" src="사다리 타기.mp3" preload="auto"></audio>
 <audio id="resultBgm" src="장성에 대한 경례 소장.mp3" preload="auto"></audio>
 
@@ -188,15 +254,28 @@ const btnReset = document.getElementById("btnReset");
 const btnFast = document.getElementById("btnFast");
 const btnSpeed = document.getElementById("btnSpeed");
 const btnSpeedDown = document.getElementById("btnSpeedDown");
-const btnStealth = document.getElementById("btnStealth");
-const btnStealthJH = document.getElementById("btnStealthJH");
-const btnStealthHH = document.getElementById("btnStealthHH");
+const btnSettings = document.getElementById("btnSettings");
+const settingsModal = document.getElementById("settingsModal");
+const settingsPeopleInput = document.getElementById("settingsPeopleInput");
+const settingsLoserInput = document.getElementById("settingsLoserInput");
+const secretInput1 = document.getElementById("secretInput1");
+const secretInput2 = document.getElementById("secretInput2");
+const secretInput3 = document.getElementById("secretInput3");
+const btnFairPlay = document.getElementById("btnFairPlay");
+const btnSettingsClose = document.getElementById("btnSettingsClose");
+const btnSettingsSave = document.getElementById("btnSettingsSave");
+const bgmVolume = document.getElementById("bgmVolume");
+const resultVolume = document.getElementById("resultVolume");
 let canvasW=0;
 let canvasH=0;
 let animToken=0;
 let animDuration=3000;
 let state={};
 let forcedNameNext=null;
+let secretTargets=["찬우","재혁","현흥"];
+let fairModeNext=false;
+let bgmVol=0.6;
+let resultVol=0.7;
 
 function resize(){
   const r = canvas.getBoundingClientRect();
@@ -238,7 +317,9 @@ function generate(opts={}){
     let loserCount=parseInt(loserCountInput.value,10);
     if(Number.isNaN(loserCount)) loserCount=1;
     loserCount=clamp(loserCount,0,N);
-    const forcedName=opts.forcedName ?? forcedNameNext;
+    const useFair=fairModeNext===true;
+    fairModeNext=false;
+    const forcedName=useFair ? null : (opts.forcedName ?? forcedNameNext);
     forcedNameNext=null;
 
     if(N<2){
@@ -267,11 +348,40 @@ function generate(opts={}){
 
     state={people,results,rungs,H,N,ends,resolved:Array(N).fill(null),showNames:false,namesByEnd:[]};
     drawBase();
-    statusEl.textContent="사다리 생성 완료";
+    statusEl.textContent=useFair ? "사다리 생성 완료 ()" : "사다리 생성 완료";
   }catch(e){
     console.error(e);
     statusEl.textContent="오류가 발생했어요. 콘솔을 확인해 주세요.";
   }
+}
+
+function openSettings(){
+  if(settingsPeopleInput) settingsPeopleInput.value=peopleInput.value;
+  if(settingsLoserInput) settingsLoserInput.value=loserCountInput.value;
+  if(bgmVolume) bgmVolume.value=Math.round(bgmVol*100);
+  if(resultVolume) resultVolume.value=Math.round(resultVol*100);
+  if(secretInput1) secretInput1.value=secretTargets[0] || "";
+  if(secretInput2) secretInput2.value=secretTargets[1] || "";
+  if(secretInput3) secretInput3.value=secretTargets[2] || "";
+  if(settingsModal) settingsModal.style.display="flex";
+}
+
+function closeSettings(){
+  if(settingsModal) settingsModal.style.display="none";
+}
+
+function saveSettings(){
+  if(settingsPeopleInput) peopleInput.value=settingsPeopleInput.value;
+  if(settingsLoserInput) loserCountInput.value=settingsLoserInput.value;
+  secretTargets=[
+    (secretInput1 && secretInput1.value ? secretInput1.value.trim() : ""),
+    (secretInput2 && secretInput2.value ? secretInput2.value.trim() : ""),
+    (secretInput3 && secretInput3.value ? secretInput3.value.trim() : "")
+  ];
+  if(bgmVolume) bgmVol=clamp(parseInt(bgmVolume.value,10)/100,0,1);
+  if(resultVolume) resultVol=clamp(parseInt(resultVolume.value,10)/100,0,1);
+  statusEl.textContent="세팅 저장 완료. 사다리 생성을 다시 눌러주세요.";
+  closeSettings();
 }
 
 function traceFrom(start,rungs,H,N){
@@ -561,7 +671,7 @@ function startBgm(){
   const audio=document.getElementById("bgm");
   if(!audio) return;
   audio.currentTime=0;
-  audio.volume=0.6;
+  audio.volume=bgmVol;
   const p=audio.play();
   if(p && typeof p.catch==="function") p.catch(()=>{});
 }
@@ -577,7 +687,7 @@ function playResultBgm(){
   const audio=document.getElementById("resultBgm");
   if(!audio) return;
   audio.currentTime=0;
-  audio.volume=0.7;
+  audio.volume=resultVol;
   const p=audio.play();
   if(p && typeof p.catch==="function") p.catch(()=>{});
 }
@@ -590,9 +700,6 @@ function stopResultBgm(){
 }
 
 if(btnGenerate) btnGenerate.onclick=generate;
-if(btnStealth) btnStealth.onclick=()=>{forcedNameNext="찬우";};
-if(btnStealthJH) btnStealthJH.onclick=()=>{forcedNameNext="재혁";};
-if(btnStealthHH) btnStealthHH.onclick=()=>{forcedNameNext="현흥";};
 if(btnRunAll) btnRunAll.onclick=runAll;
 if(btnFast) btnFast.onclick=fastResult;
 if(btnSpeed) btnSpeed.onclick=()=>{
@@ -612,6 +719,31 @@ if(btnReset) btnReset.onclick=()=>{
   statusEl.textContent="사다리 생성을 누르세요";
   drawPlaceholder();
 };
+document.querySelectorAll(".split-btn").forEach((btn)=>{
+  btn.addEventListener("click",(e)=>{
+    const rect=btn.getBoundingClientRect();
+    const y=e.clientY-rect.top;
+    const half=rect.height/2;
+    if(y<=half) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    const idx=parseInt(btn.dataset.stealthIndex,10);
+    if(Number.isNaN(idx)) return;
+    forcedNameNext=secretTargets[idx] || null;
+  }, true);
+});
+if(btnSettings) btnSettings.onclick=openSettings;
+if(btnSettingsClose) btnSettingsClose.onclick=closeSettings;
+if(btnSettingsSave) btnSettingsSave.onclick=saveSettings;
+if(btnFairPlay) btnFairPlay.onclick=()=>{
+  fairModeNext=true;
+  forcedNameNext=null;
+  statusEl.textContent="사다리 생성을 다시 눌러주세요.";
+  closeSettings();
+};
+if(settingsModal) settingsModal.addEventListener("click",(e)=>{
+  if(e.target===settingsModal) closeSettings();
+});
 
 drawPlaceholder();
 </script>
