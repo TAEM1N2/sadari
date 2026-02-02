@@ -4,6 +4,8 @@ GitHub Pages에 올린 페이지를 휴대폰/PC에서 **앱처럼 설치(PWA)**
 
 ## 설치 방법
 
+https://taem1n2.github.io/sadari/
+
 ### 1) Android (크롬)
 1. GitHub Pages 주소로 접속
 2. 브라우저 메뉴(⋮) → **앱 설치** 또는 **홈 화면에 추가**
