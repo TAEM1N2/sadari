@@ -154,6 +154,7 @@ canvas{width:100%;height:540px;display:block;}
   transform:translateX(-50%) translateY(-12px);
   display:none;
   align-items:center;
+  flex-wrap:wrap;
   gap:12px;
   background:#fff;
   padding:12px 14px;
@@ -164,18 +165,31 @@ canvas{width:100%;height:540px;display:block;}
   animation:toast-in .25s ease-out forwards;
   width:auto;
   max-width:calc(100vw - 24px);
-  justify-content:flex-start;
+  justify-content:center;
+  box-sizing:border-box;
+}
+.toast.compact{
+  width:fit-content;
 }
 .toast.show{display:inline-flex;}
-.toast-content{display:flex;align-items:center;gap:12px;flex:0 0 auto;}
-.toast-actions{display:flex;gap:8px;align-items:center;flex:0 0 auto;}
+.toast-content{display:flex;align-items:center;gap:12px;flex:1 1 100%;justify-content:center;min-width:0;}
+.toast-actions{display:flex;gap:8px;align-items:center;flex:1 1 100%;justify-content:center;flex-wrap:wrap;}
 .toast-actions button{min-width:92px;white-space:nowrap;}
+.btn-mobile-break span + span{margin-left:4px;}
 .popup-icon{
   font-size:28px;
 }
 .popup-text{
   font-weight:700;
   white-space:nowrap;
+}
+.result-modal{
+  background:#fff;
+  padding:24px;
+  border-radius:16px;
+  min-width:260px;
+  max-height:90vh;
+  overflow-y:auto;
 }
 @keyframes toast-in{
   from{opacity:0;transform:translateX(-50%) translateY(-12px);}
@@ -190,17 +204,38 @@ canvas{width:100%;height:540px;display:block;}
     flex-direction:column;
   }
   .toast{
-    width:fit-content;
+    width:calc(100vw - 24px);
     max-width:calc(100vw - 24px);
     padding:14px 12px;
   }
+  .toast.compact{
+    width:calc(100vw - 24px);
+  }
   .popup-text{
-    max-width:72vw;
-    overflow:hidden;
-    text-overflow:ellipsis;
+    white-space:normal;
+    text-align:center;
+  }
+  .popup-text .line{
+    display:block;
+  }
+  .toast-content{
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .toast-actions{
+    flex-wrap:wrap;
+    justify-content:center;
   }
   .toast-actions button{
     min-width:88px;
+  }
+  .btn-mobile-break span{
+    display:block;
+    line-height:1.05;
+  }
+  .result-modal{
+    width:92vw;
+    max-height:86vh;
   }
 }
 </style>
@@ -229,12 +264,12 @@ canvas{width:100%;height:540px;display:block;}
       </div>
 
       <div class="btns">
-        <button class="primary" id="btnGenerate">사다리 생성</button>
+        <button class="primary btn-mobile-break" id="btnGenerate"><span>사다리</span><span>생성</span></button>
         <button class="subtle" id="btnRunAll">전체 실행</button>
         <button class="danger" id="btnReset">초기화</button>
-        <button class="warn split-btn" id="btnSpeed" data-stealth-index="1">사다리 속도 증가</button>
-        <button class="warn split-btn" id="btnSpeedDown" data-stealth-index="2">사다리 속도 감소</button>
-        <button class="subtle" id="btnFast">빠른 결과보기</button>
+        <button class="warn split-btn btn-mobile-break" id="btnSpeed" data-stealth-index="1"><span>사다리</span><span>속도증가</span></button>
+        <button class="warn split-btn btn-mobile-break" id="btnSpeedDown" data-stealth-index="2"><span>사다리</span><span>속도감소</span></button>
+        <button class="subtle btn-mobile-break" id="btnFast"><span>빠른</span><span>결과보기</span></button>
       </div>
     </section>
 
@@ -254,7 +289,7 @@ canvas{width:100%;height:540px;display:block;}
   display:none;align-items:center;justify-content:center;
 ">
   <div id="emojiBurst" aria-hidden="true"></div>
-  <div style="background:#fff;padding:24px;border-radius:16px;min-width:260px;">
+  <div class="result-modal">
     <h3>🎉 결과 🎉</h3>
     <div id="resultList" style="margin:12px 0;"></div>
     <div id="resultFooter" style="margin-top:10px;font-weight:700;color:#11131a;"></div>
@@ -297,7 +332,7 @@ canvas{width:100%;height:540px;display:block;}
 </div>
 
 <!-- 룰렛 확정 알림 2 -->
-<div id="roulettePopup2" class="toast" role="status" aria-live="polite" aria-hidden="true">
+<div id="roulettePopup2" class="toast compact" role="status" aria-live="polite" aria-hidden="true">
   <div class="toast-content">
     <div class="popup-icon">☹️</div>
     <div id="roulettePopupText2" class="popup-text"></div>
@@ -976,7 +1011,7 @@ function getForcedIcecreamIndex(){
 function showRoulettePopup(){
   if(!roulettePopup || !roulettePopupText) return;
   const name=(lastLosers && lastLosers.length>0) ? lastLosers[0] : "누군가";
-  roulettePopupText.textContent=`${name}(이)가 씐나보이나요?`;
+  roulettePopupText.innerHTML=`<span class="line">${name} (이)가</span><span class="line">씐나보이나요?</span>`;
   roulettePopup.classList.add("show");
   roulettePopup.setAttribute("aria-hidden","false");
 }
@@ -985,7 +1020,7 @@ function showRoulettePopup2(){
   if(!roulettePopup2 || !roulettePopupText2) return;
   if(modalEl && modalEl.style.display!=="flex") return;
   const name=(lastLosers && lastLosers.length>0) ? lastLosers[0] : "누군가";
-  roulettePopupText2.textContent=`${name} (이)가 이제는 씐나보이죠?`;
+  roulettePopupText2.innerHTML=`<span class="line">${name} (이)가</span><span class="line">이제는 씐나보이죠?</span>`;
   roulettePopup2.classList.add("show");
   roulettePopup2.setAttribute("aria-hidden","false");
 }
