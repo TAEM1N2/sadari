@@ -162,15 +162,20 @@ canvas{width:100%;height:540px;display:block;}
   border:1px solid #e6e9f2;
   z-index:10;
   animation:toast-in .25s ease-out forwards;
+  width:auto;
+  max-width:calc(100vw - 24px);
+  justify-content:flex-start;
 }
-.toast.show{display:flex;}
-.toast-content{display:flex;align-items:center;gap:12px;}
-.toast-actions{display:flex;gap:8px;align-items:center;}
+.toast.show{display:inline-flex;}
+.toast-content{display:flex;align-items:center;gap:12px;flex:0 0 auto;}
+.toast-actions{display:flex;gap:8px;align-items:center;flex:0 0 auto;}
+.toast-actions button{min-width:92px;white-space:nowrap;}
 .popup-icon{
   font-size:28px;
 }
 .popup-text{
   font-weight:700;
+  white-space:nowrap;
 }
 @keyframes toast-in{
   from{opacity:0;transform:translateX(-50%) translateY(-12px);}
@@ -179,6 +184,24 @@ canvas{width:100%;height:540px;display:block;}
 
 @media(max-width:900px){
   .panel{grid-template-columns:1fr;}
+}
+@media(max-width:600px){
+  .roulette-row{
+    flex-direction:column;
+  }
+  .toast{
+    width:fit-content;
+    max-width:calc(100vw - 24px);
+    padding:14px 12px;
+  }
+  .popup-text{
+    max-width:72vw;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .toast-actions button{
+    min-width:88px;
+  }
 }
 </style>
 </head>
